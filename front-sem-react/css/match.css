@@ -6,9 +6,6 @@
 
 body {
     position: relative;
-    background-image: url("/imagens/match.gif");
-    background-size: cover;
-    background-repeat: no-repeat;
     height: 100vh;
     display: flex;
     justify-content: center;
@@ -17,7 +14,19 @@ body {
     overflow: hidden;
 }
 
-body::after {
+.background-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("/imagens/match.gif");
+    background-size: cover;
+    background-repeat: no-repeat;
+    z-index: -1;
+}
+
+.background-overlay::after {
     content: "";
     position: absolute;
     top: 0;
@@ -25,5 +34,89 @@ body::after {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    pointer-events: none; 
+    pointer-events: none;
 }
+
+.card-image {
+    border-radius: 5px;
+}
+
+p {
+    color: #ffffff;
+    text-shadow: 2px 4px 3px rgba(0,0,0,0.3);
+    text-align: center;
+    font-family: 'Kaisei Tokumin', serif;
+}
+
+.deck{
+    margin-top: 5.5vw;
+}
+
+.board {
+    display: flex;
+    justify-content: space-around;
+    flex-direction: row;
+    width: 100%;
+}
+
+.hand {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+    width: 100%;
+    margin: 1vw;
+    padding-top: 50px;
+}
+
+.card {
+    margin: 1vw;
+    width: 125px;
+    height: 200px;
+    background: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.card img {
+    margin-top: 10px;
+    margin-left: 30px;
+}
+
+.card p {
+    color: #000;
+    font-family: Roboto, sans-serif;
+    margin: 5px;
+}
+
+.active-card-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 200px;
+    margin-bottom: -50px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+    color: #fff;
+    font-size: 20px;
+    font-family: 'Kaisei Tokumin', serif;
+    text-shadow: 2px 4px 3px rgba(0,0,0,0.3);
+}
+
+.enemy-card-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 200px;
+    margin-top: 0;
+    margin-bottom: 40px;
+    background-color: rgba(255, 0, 0, 0.2);
+    border-radius: 5px;
+    color: #fff;
+    font-size: 20px;
+    font-family: 'Kaisei Tokumin', serif;
+    text-shadow: 2px 4px 3px rgba(0,0,0,0.3);
+}
+
+

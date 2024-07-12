@@ -24,6 +24,10 @@ async function fetch_card_data() {
     return response.json();
 }
 
+async function gets_card_uri(booster_contract, id){
+    return await booster_contract.tokenURI(id);
+}
+
 async function display_cards() {
     const cards_display = document.getElementById("deck_display");
     cards_display.style.visibility = "visible";
@@ -49,7 +53,7 @@ async function display_cards() {
         for (let i = 0; i < cards.length; i++){
             let card_id = parseInt(cards[i]);
 
-            let card_uri = await booster_contract.tokenURI(card_id);
+            let card_uri = await gets_card_uri(booster_contract, card_id);
 
             let card_completo = {id: card_id, uri: card_uri}
 

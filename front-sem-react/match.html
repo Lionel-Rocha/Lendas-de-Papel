@@ -7,23 +7,25 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kaisei+Tokumin&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.0/ethers.umd.min.js" integrity="sha512-+Ftowzj6zmwHlez4gpQxd7QQUzK/ocgu10pukN3Pyqblni7yJ9r/WTpNHoYKL4DGOp5givxSUZjJcVY7Az9OAQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="ethers.js"></script>
+    <script src="match.js"></script>
+    <script src="deck.js"></script>
+    <script src="dragdrop.js"></script>
     <script src="constantes.js"></script>
     <link rel="stylesheet" href="css/match.css">
 </head>
 <body>
-<div class="board">
-
-    <div class="hand">
-
+<div class="background-overlay"></div>
+<div class="aggregator">
+    <div id="enemy-card-area" class="enemy-card-area">
+        Lenda do Inimigo
     </div>
-
-    <div class="deck">
-
+    <div id="active-card-area" class="active-card-area">
+        Lenda ativa
     </div>
-
-
+    <div class="board">
+        <div class="hand" id="hand"></div>
+        <div class="deck" id="deck-grid"></div>
+    </div>
 </div>
-
 </body>
 </html>
