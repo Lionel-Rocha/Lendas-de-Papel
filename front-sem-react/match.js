@@ -125,6 +125,40 @@ function shuffle_deck(arr) {
         .map(({ val }) => val);
 }
 
+async function updateHandDisplay(data) {
+    const handDiv = document.getElementById('hand');
+    handDiv.innerHTML = ""; // Limpar exibição anterior
+
+
+
+    for (let i = 0; i < playerHand.length; i++) {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const cardImage = document.createElement('img');
+        cardImage.src = `/imagens/lendas/${playerHand[i].uri}.png`;
+
+        const description = document.createElement('p');
+
+        if (data) {
+            const cartaEncontrada = data.cartas.find(carta => carta.nome === playerHand[i].uri);
+            if (cartaEncontrada.propriedade === "item") {
+                description.innerText = cartaEncontrada.habilidade;
+            } else {
+                description.innerText = `HP: ${cartaEncontrada.hp}\nAtaque: ${cartaEncontrada.ataque}`;
+            }
+        }
+
+        card.appendChild(cardImage);
+        card.appendChild(description);
+        handDiv.appendChild(card);
+    }
+
+    addDragAndDropListeners(); // Adicionar novamente os ouvintes de eventos de arrastar e soltar
+}
+
+
 start_match().then(() => {
     addDragAndDropListeners();
+
 });

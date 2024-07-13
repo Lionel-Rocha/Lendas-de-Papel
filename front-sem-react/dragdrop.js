@@ -1,3 +1,5 @@
+let activeCardInstance = null; // Variável global para armazenar a instância ativa da carta
+
 class ActiveCard {
     constructor(card, cardData) {
         this.card = card;
@@ -7,14 +9,15 @@ class ActiveCard {
     }
 
     createCardElement() {
+        chooseCard(this.card);
         const activeCardArea = document.getElementById('active-card-area');
+
         activeCardArea.innerHTML = ""; // Limpar qualquer carta ativa anterior
 
         const cardContainer = document.createElement('div');
         cardContainer.classList.add('active-card');
 
         const cardImage = document.createElement('img');
-        console.log(this.card);
 
         cardImage.src = `/imagens/lendas/${this.card.uri}.png`;
 
@@ -23,8 +26,9 @@ class ActiveCard {
 
         cardContainer.appendChild(cardImage);
         cardContainer.appendChild(description);
-
+        cardContainer.className = "card";
         activeCardArea.appendChild(cardContainer);
+
     }
 
     reduceHP(amount) {
@@ -53,6 +57,8 @@ function addDragAndDropListeners() {
 
     activeCardArea.addEventListener('dragover', handleDragOver);
     activeCardArea.addEventListener('drop', handleDrop);
+
+
 }
 
 function handleDragStart(event) {
@@ -72,9 +78,15 @@ async function handleDrop(event) {
     const data = await fetch_card_data();
     const cardData = data.cartas.find(carta => carta.nome === hand[cardIndex].uri);
 
-    console.log(cardData);
-    // const cardData = hand.cartas[cardIndex];
     const card = hand[cardIndex];
-    const activeCard = new ActiveCard(card, cardData);
+    playerHand.splice(parseInt(cardIndex), 1);
+    await updateHandDisplay(data);
+    activeCardInstance = new ActiveCard(card, cardData);
 
+}
+
+function reduceHP(amount){
+    if (activeCardInstance) {
+        activeCardInstance.reduceHP(amount); // Reduz o HP da carta ativa em 10 (ou qualquer valor desejado)
+    }
 }
