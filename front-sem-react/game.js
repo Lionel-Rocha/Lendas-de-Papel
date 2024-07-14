@@ -4,6 +4,7 @@ for a vez dele, adicionar ataque
 
 const socket = io("http://localhost:3000");
 
+
 socket.on('connect', () => {
     console.log('Connected to server:', socket.id);
 });
@@ -40,10 +41,42 @@ socket.on('startGame', (roomName) => {
 
 });
 
+socket.on('hand_deck_shuffled', async (deckdata) => {
+
+
+
+    let playerHand_ = deckdata.hand;
+    let updated_deck = deckdata.updated_deck;
+
+    //trocar ids para uris
+
+    for (let i = 0; i < playerHand_.length; i++) {
+        let id = playerHand_[i];
+        let uri = await gets_card_uri_without_contract(playerHand_[i]);
+        playerHand_[i] = {id, uri};
+    }
+
+    for (let i = 0; i < updated_deck.length; i++) {
+        let id = updated_deck[i];
+        let uri = await gets_card_uri_without_contract(updated_deck[i]);
+        updated_deck[i] = {id, uri};
+    }
+
+    console.log(playerHand_);
+    console.log(updated_deck);
+
+    playerHand = playerHand_;
+
+    show_deck_cards(updated_deck);
+    let data = await fetch_card_data();
+    show_hand(playerHand_, data);
+
+});
+
 
 socket.on('turnStarted', (roomName, playerId) => {
     const storedRoomName = sessionStorage.getItem('roomName');
-
+    console.log(playerId);
     if (roomName === storedRoomName){
         console.log(`É a vez do jogador ${playerId}`);
         const currentPlayerId = socket.id;
@@ -68,6 +101,17 @@ socket.on('reduceEnemyHP', (data) => {
     console.log(data);
     updateEnemyCard(data.card);
 });
+
+socket.on('drawCard', async (card) => {
+
+    let card_information = await gets_card_uri_without_contract(card);
+    card_information = {uri: card_information};
+    playerHand.push(card_information);
+    console.log(`Carta recebida: ${card_information}`);
+    updateHandDisplay();
+    // show_deck_cards(playerdeck);
+});
+
 
 socket.on('disconnect', () => {
     console.log('Disconnected from server');

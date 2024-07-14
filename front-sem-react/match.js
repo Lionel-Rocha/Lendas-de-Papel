@@ -11,32 +11,34 @@ async function start_match() {
             await provider.send("eth_requestAccounts", []);
 
             let signer = provider.getSigner();
-            let address = signer.getAddress();
+            let address = await signer.getAddress();
             const deck_contract = new ethers.Contract(DECK_ADDRESS, ABI_DECK.abi, signer);
             const booster_contract = new ethers.Contract(BOOSTER_ADDRESS, ABI_BOOSTER.abi, signer);
 
-            let player_deck = await fetch_deck(deck_contract, booster_contract);
-            let shuffled_deck = shuffle_deck(player_deck);
-
-            [playerHand, shuffled_deck] = give_hand(shuffled_deck);
-
-            let data = await fetch_card_data();
-            let can_start = false;
+            socket.emit('getDeck', {address});
 
 
-            //eu tentei fazer isso com um while, mas a página quebrou várias vezes.
-            if (!can_start){
-                let shuffled_deck = shuffle_deck(player_deck);
-                [playerHand, shuffled_deck] = give_hand(shuffled_deck);
-                can_start = check_hand_ok(playerHand);
-                if (!can_start){
-                    let shuffled_deck = shuffle_deck(player_deck);
-                    [playerHand, shuffled_deck] = give_hand(shuffled_deck);
-                }
-            }
+            // let player_deck = await fetch_deck(deck_contract, booster_contract);
+            // let shuffled_deck = shuffle_deck(player_deck);
+            //
+            // [playerHand, shuffled_deck] = give_hand(shuffled_deck);
+            //
+            // let data = await fetch_card_data();
+            // let can_start = false;
+            //
+            //
+            // //eu tentei fazer isso com um while, mas a página quebrou várias vezes.
+            // if (!can_start){
+            //     let shuffled_deck = shuffle_deck(player_deck);
+            //     [playerHand, shuffled_deck] = give_hand(shuffled_deck);
+            //     can_start = check_hand_ok(playerHand);
+            //     if (!can_start){
+            //         let shuffled_deck = shuffle_deck(player_deck);
+            //         [playerHand, shuffled_deck] = give_hand(shuffled_deck);
+            //     }
+            // }
+            //
 
-            show_deck_cards(shuffled_deck);
-            show_hand(playerHand, data);
 
 
         } catch (e) {
@@ -106,7 +108,7 @@ function show_hand(hand, data){
         card.appendChild(card_image);
         card.appendChild(description);
         hand_div.appendChild(card);
-
+        addDragAndDropListeners();
     }
 }
 async function fetch_deck(deck_contract, booster_contract) {
@@ -161,7 +163,8 @@ function updateEnemyCard(card){
     document.getElementById("enemy-description").innerText = `HP: ${card.hp}\nAtaque: ${card.ataque}`;
 }
 
-async function updateHandDisplay(data) {
+async function updateHandDisplay() {
+    const data = await fetch_card_data();
     const handDiv = document.getElementById('hand');
     handDiv.innerHTML = "";
 

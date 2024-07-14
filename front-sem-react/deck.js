@@ -46,6 +46,13 @@ async function gets_card_uri(booster_contract, id) {
     return await booster_contract.tokenURI(id);
 }
 
+async function gets_card_uri_without_contract(id){
+    const provider = new ethers.providers.JsonRpcProvider("https://rpc.testnet.lachain.network");
+    const contract = new ethers.Contract(BOOSTER_ADDRESS, ABI_BOOSTER.abi, provider);
+
+    return await contract.tokenURI(id);
+}
+
 async function display_cards() {
     const cards_display = document.getElementById("deck_display");
     cards_display.style.visibility = "visible";

@@ -1,6 +1,6 @@
 const BOOSTER_ADDRESS = "0x736758442539a4714dFa73FF2eC806C2f0CA1660";
 
-const DECK_ADDRESS = "0x7d915c112d1A84E961717087818b6Fd6Ce7E2242";
+const DECK_ADDRESS = "0x1cdaf3E833BA67623047148C292f9c47eE64BBd1";
 
 const ABI_DECK = {
     "abi": [
@@ -8,7 +8,7 @@ const ABI_DECK = {
             "inputs": [
                 {
                     "internalType": "address",
-                    "name": "_OrigamiCardsAddress",
+                    "name": "_origamiCardsAddress",
                     "type": "address"
                 }
             ],
@@ -73,19 +73,6 @@ const ABI_DECK = {
             "type": "event"
         },
         {
-            "inputs": [],
-            "name": "OrigamiCards",
-            "outputs": [
-                {
-                    "internalType": "contract IERC721",
-                    "name": "",
-                    "type": "address"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
             "inputs": [
                 {
                     "internalType": "uint256",
@@ -127,6 +114,25 @@ const ABI_DECK = {
         {
             "inputs": [
                 {
+                    "internalType": "address",
+                    "name": "deckowner",
+                    "type": "address"
+                }
+            ],
+            "name": "getUserDeck",
+            "outputs": [
+                {
+                    "internalType": "uint256[]",
+                    "name": "",
+                    "type": "uint256[]"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
                     "internalType": "uint256",
                     "name": "cardId",
                     "type": "uint256"
@@ -138,6 +144,19 @@ const ABI_DECK = {
                     "internalType": "bool",
                     "name": "",
                     "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "origamiCards",
+            "outputs": [
+                {
+                    "internalType": "contract IERC721",
+                    "name": "",
+                    "type": "address"
                 }
             ],
             "stateMutability": "view",
