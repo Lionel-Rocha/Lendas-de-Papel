@@ -20,8 +20,22 @@ async function start_match() {
 
             [playerHand, shuffled_deck] = give_hand(shuffled_deck);
 
-            show_deck_cards(shuffled_deck);
             let data = await fetch_card_data();
+            let can_start = false;
+
+
+            //eu tentei fazer isso com um while, mas a página quebrou várias vezes.
+            if (!can_start){
+                let shuffled_deck = shuffle_deck(player_deck);
+                [playerHand, shuffled_deck] = give_hand(shuffled_deck);
+                can_start = check_hand_ok(playerHand);
+                if (!can_start){
+                    let shuffled_deck = shuffle_deck(player_deck);
+                    [playerHand, shuffled_deck] = give_hand(shuffled_deck);
+                }
+            }
+
+            show_deck_cards(shuffled_deck);
             show_hand(playerHand, data);
 
 
@@ -31,7 +45,26 @@ async function start_match() {
         }
     }
 
+}
 
+function check_hand_ok(hand){
+    let has_legend = false;
+    for (let i = 0; i < hand.length; i++){
+
+        let result = check_if_card_is_legend(hand[i]);
+        if (result === true){
+            has_legend = true;
+            break;
+        }
+    }
+
+    return has_legend;
+}
+
+async function check_if_card_is_legend(card) {
+    let data = await fetch_card_data();
+    const carta = data.cartas.find(carta => carta.nome === card.uri);
+    return carta.propriedade === "lenda";
 }
 
 
@@ -69,7 +102,6 @@ function show_hand(hand, data){
                 description.innerText = `HP: ${cartaEncontrada.hp}\nAtaque: ${cartaEncontrada.ataque}`;
             }
         }
-
 
         card.appendChild(card_image);
         card.appendChild(description);
@@ -125,11 +157,13 @@ function shuffle_deck(arr) {
         .map(({ val }) => val);
 }
 
+function updateEnemyCard(card){
+    document.getElementById("enemy-description").innerText = `HP: ${card.hp}\nAtaque: ${card.ataque}`;
+}
+
 async function updateHandDisplay(data) {
     const handDiv = document.getElementById('hand');
-    handDiv.innerHTML = ""; // Limpar exibição anterior
-
-
+    handDiv.innerHTML = "";
 
     for (let i = 0; i < playerHand.length; i++) {
         const card = document.createElement('div');

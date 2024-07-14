@@ -1,3 +1,7 @@
+/*TODO: colocar evento para anexação de item, impedir jogador de tomar ações quando não
+for a vez dele, adicionar ataque
+*/
+
 const socket = io("http://localhost:3000");
 
 socket.on('connect', () => {
@@ -9,20 +13,93 @@ socket.on('matchFound', (roomName) => {
     sessionStorage.setItem('roomName', roomName);  // Armazenar o nome da sala na sessionStorage
 
     window.location.href = `match.html?roomId=${roomName}`;
+
 });
 
 socket.on('enemyCardChosen', ({ card, roomName }) => {
     const storedRoomName = sessionStorage.getItem('roomName');
     if (roomName === storedRoomName) {
-
         displayEnemyCard(card);
     }
 });
 
+socket.on('enemyCardUpdated', ({card, roomName}) => {
+
+    const storedRoomName = sessionStorage.getItem('roomName');
+    if (roomName === storedRoomName) {
+        console.log(card);
+        updateEnemyCard(card);
+    }
+});
+
+socket.on('startGame', (roomName) => {
+    const storedRoomName = sessionStorage.getItem('roomName');
+    if (roomName === storedRoomName) {
+        console.log("O jogo começou na sala:", roomName);
+    }
+
+});
+
+
+socket.on('turnStarted', (roomName, playerId) => {
+    const storedRoomName = sessionStorage.getItem('roomName');
+
+    if (roomName === storedRoomName){
+        console.log(`É a vez do jogador ${playerId}`);
+        const currentPlayerId = socket.id;
+        if (playerId === currentPlayerId) {
+            is_player_turn = true;
+            console.log("Sua vez de jogar!");
+            showAttackButton();
+        } else {
+            is_player_turn = false;
+            console.log("Aguarde a vez do seu oponente.");
+            hideAttackButton();
+        }
+    }
+});
+
+socket.on('reduceHP', (data) => {
+    const { amount } = data;
+    reduceHP(amount);
+});
+
+socket.on('reduceEnemyHP', (data) => {
+    console.log(data);
+    updateEnemyCard(data.card);
+});
 
 socket.on('disconnect', () => {
     console.log('Disconnected from server');
 });
+
+function showAttackButton() {
+    const attackButton = document.getElementById('attack-button');
+    if(attackButton){
+        attackButton.style.display = 'block';
+        attackButton.addEventListener('click', handleAttack);
+    }
+
+}
+
+function hideAttackButton() {
+    const attackButton = document.getElementById('attack-button');
+    attackButton.style.display = 'none';
+    attackButton.removeEventListener('click', handleAttack);
+}
+
+function handleAttack() {
+    if (activeCardInstance) {
+
+        const roomName = sessionStorage.getItem('roomName');
+        console.log(roomName);
+        const attackPower = activeCardInstance.attack;
+        socket.emit('attack', { roomName, attackPower });
+
+    }
+}
+
+
 
 async function findMatch() {
     try {
@@ -46,16 +123,21 @@ function chooseCard(card) {
         alert("You are not in a room yet. Please wait for a match.");
         return;
     }
-    const data = { roomName: roomName, card: card };
-    socket.emit('chooseCard', data);
-    displayActiveCard(card);
-}
 
+    let is_legend = check_if_card_is_legend(card);
+    if (is_legend){
+        const data = { roomName: roomName, card: card };
+        socket.emit('chooseCard', data);
+        displayActiveCard(card);
+    } else {
+        //lógica para botar o card de volta na mão
+    }
+}
 
 async function displayEnemyCard(card) {
     document.getElementById("enemy-card-area").innerText = ""
     let data = await fetch_card_data();
-    create_card(card, data)
+    create_enemy_card(card, data)
 
 }
 
@@ -64,7 +146,7 @@ function displayActiveCard(card) {
     activeCardArea.innerText = card.uri;
 }
 
-function create_card(card, data){
+function create_enemy_card(card, data){
     const card_div = document.createElement('div');
     card_div.className = "card";
 
@@ -78,6 +160,7 @@ function create_card(card, data){
     card_div.appendChild(card_front);
 
     const description = document.createElement("p");
+    description.id = "enemy-description";
     if (data) {
         const cartaEncontrada = data.cartas.find(carta => carta.nome === card.uri);
         if (cartaEncontrada.propriedade === "item") {
@@ -88,6 +171,17 @@ function create_card(card, data){
     }
     card_front.appendChild(description);
     document.getElementById("enemy-card-area").appendChild(card_front);
+}
+
+function item_chosen(updated_card){
+    let roomName = sessionStorage.getItem('roomName');
+    console.log(updated_card);
+    let hp = updated_card.hp;
+    let attack = updated_card.attack;
+
+    let card = {hp, attack};
+
+    socket.emit('item_chosen', {card, roomName});
 }
 
 function quit(){

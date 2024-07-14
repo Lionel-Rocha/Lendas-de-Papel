@@ -13,9 +13,11 @@ const io = require('socket.io')(server, {
         origin: '*',
     }
 });
+
 let waitingPlayers = [];
 let playersReady = {};
 let playerTurn = {};
+let activeCards = {};
 
 io.on('connection', (socket) => {
 
@@ -43,7 +45,6 @@ io.on('connection', (socket) => {
 
         const cartaEscolhida = lendas.cartas.find(carta => carta.nome === card.uri);
 
-
         if (!cartaEscolhida) {
             return;
         }
@@ -57,86 +58,130 @@ io.on('connection', (socket) => {
         }
         playersReady[roomName][socket.id] = true;
 
+        // Armazenar a carta ativa do jogador
+        if (!activeCards[roomName]) {
+            activeCards[roomName] = {};
+        }
+        activeCards[roomName][socket.id] = { ...cartaEscolhida, itens: [] };
+
         if (Object.keys(playersReady[roomName]).length === 2) {
             io.emit('startGame', roomName);
-
             startTurn(roomName, playersReady[roomName]);
-            playersReady[roomName] = {};
-
+            // playersReady[roomName] = {};
         }
     });
 
     socket.on('item_chosen', (data) => {
-        const card = data.card;
 
-        let roomName = data.roomName;
-
-        console.log(playerTurn[roomName]);
+        const roomName = data.roomName;
+        const item = data.card;
 
         if (playerTurn[roomName] !== socket.id) {
             console.log(`Jogador ${socket.id} tentou usar um item fora de sua vez.`);
             return;
         }
 
+        if (!activeCards[roomName] || !activeCards[roomName][socket.id]) {
+            console.log(`Carta ativa não encontrada para o jogador ${socket.id}`);
+            return;
+        }
 
-        socket.broadcast.emit('enemyCardUpdated', {card, roomName});
-    })
+        // Anexar o item à carta ativa
+        activeCards[roomName][socket.id].itens.push(item);
+        activeCards[roomName][socket.id].hp += item.hp;
+        activeCards[roomName][socket.id].ataque += item.attack;
+        let card = activeCards[roomName][socket.id];
+
+        console.log(card);
+
+        socket.broadcast.emit('enemyCardUpdated', { card, roomName });
+    });
 
     socket.on('attack', (data) => {
-        const { roomName, attackPower } = data;
-        const opponentId = Object.keys(playersReady[roomName]).find(id => id !== socket.id);
+        const roomName = data.roomName;
+        // console.log(playersReady);
+        // console.log(roomName);
+        // console.log(playersReady[roomName]);
 
-        console.log(playerTurn[roomName]);
+        const opponentId = Object.keys(playersReady[roomName]).find(id => id !== socket.id);
 
         if (playerTurn[roomName] !== socket.id) {
             console.log(`Jogador ${socket.id} tentou atacar fora de sua vez.`);
             return;
         }
 
-        if (opponentId && activeCardInstance) {
+        if (!activeCards[roomName] || !activeCards[roomName][socket.id]) {
+            console.log(`Carta ativa não encontrada para o jogador ${socket.id}`);
+            return;
+        }
+
+        const activeCard = activeCards[roomName][socket.id];
+
+        // console.log(activeCard);
+        // console.log(opponentId);
+        let attackPower = activeCard.ataque;
+
+        // Calcular o ataque total com base nos itens anexados
+        for (const item of activeCard.itens) {
+            attackPower += item.attack || 0;
+        }
+
+        if (opponentId) {
+            let opponentCard = activeCards[roomName][opponentId];
+            opponentCard.hp -= attackPower;
+
             io.to(opponentId).emit('reduceHP', { roomName, amount: attackPower });
-            io.emit('update')
-            switchTurn(roomName);
+            io.to(socket.id).emit('reduceEnemyHP', {roomName, card:opponentCard});
+            let hp = opponentCard.hp;
+            let ataque = opponentCard.ataque;
+
+
+            let card = opponentCard;
+
+            card = {card};
+
+            // socket.broadcast.emit('attacked', {card,roomName});
+
+            switchTurn(roomName, playersReady[roomName]);
         } else {
             console.error('Oponente não encontrado ou nenhuma carta ativa.');
         }
     });
 
-
     socket.on('disconnect', () => {
         console.log(`Usuário desconectado: ${socket.id}`);
-
         waitingPlayers = waitingPlayers.filter(player => player.id !== socket.id);
     });
 });
 
 function startTurn(roomName, players) {
-    if (players.length === 0) {
+    if (Object.keys(players).length === 0) {
         console.log(`Nenhum jogador encontrado na sala ${roomName}`);
         return;
     }
 
     const firstPlayerId = Object.keys(players)[0];
     const secondPlayerId = Object.keys(players)[1];
+    const randomIndex = Math.floor(Math.random() * 2);
+    const startingPlayer = [firstPlayerId, secondPlayerId][randomIndex];
 
-    players = [firstPlayerId, secondPlayerId];
-
-    const randomIndex = Math.floor(Math.random() * players.length);
-    const startingPlayer = players[randomIndex];
     playerTurn[roomName] = startingPlayer;
     io.emit('turnStarted', roomName, startingPlayer);
     console.log(`O jogador ${startingPlayer} começa a partida na sala ${roomName}`);
 }
 
-function switchTurn(roomName) {
-    const players = Array.from(io.sockets.adapter.rooms.get(roomName));
-    const currentTurnIndex = players.indexOf(playerTurn[roomName]);
-    const nextTurnIndex = (currentTurnIndex + 1) % players.length;
-    playerTurn[roomName] = players[nextTurnIndex];
-    io.to(roomName).emit('turnStarted', playerTurn[roomName]);
+function switchTurn(roomName, players) {
+    const playerIds = Object.keys(players);
+    const currentTurn = playerTurn[roomName];
+
+    const currentTurnIndex = playerIds.findIndex(id => id === currentTurn);
+    const nextTurnIndex = (currentTurnIndex + 1) % playerIds.length;
+    const nextTurn = playerIds[nextTurnIndex];
+
+    playerTurn[roomName] = nextTurn;
+    io.emit('turnStarted', roomName, playerTurn[roomName]);
     console.log(`Agora é a vez do jogador ${playerTurn[roomName]} na sala ${roomName}`);
 }
-
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
