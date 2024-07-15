@@ -13,7 +13,7 @@ const ABI_BOOSTER = JSON_BOOSTER.abi;
 
 const PROVIDER_URL = 'https://rpc.testnet.lachain.network';
 
-const provider = new ethers.JsonRpcProvider(PROVIDER_URL);
+const provider = new ethers.providers.JsonRpcProvider(PROVIDER_URL);
 const deck_contract = new ethers.Contract(DECK_ADDRESS, ABI_DECK, provider);
 const booster_contract = new ethers.Contract(BOOSTER_ADDRESS, ABI_BOOSTER, provider);
 
