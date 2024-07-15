@@ -18,29 +18,6 @@ async function start_match() {
             socket.emit('getDeck', {address});
 
 
-            // let player_deck = await fetch_deck(deck_contract, booster_contract);
-            // let shuffled_deck = shuffle_deck(player_deck);
-            //
-            // [playerHand, shuffled_deck] = give_hand(shuffled_deck);
-            //
-            // let data = await fetch_card_data();
-            // let can_start = false;
-            //
-            //
-            // //eu tentei fazer isso com um while, mas a página quebrou várias vezes.
-            // if (!can_start){
-            //     let shuffled_deck = shuffle_deck(player_deck);
-            //     [playerHand, shuffled_deck] = give_hand(shuffled_deck);
-            //     can_start = check_hand_ok(playerHand);
-            //     if (!can_start){
-            //         let shuffled_deck = shuffle_deck(player_deck);
-            //         [playerHand, shuffled_deck] = give_hand(shuffled_deck);
-            //     }
-            // }
-            //
-
-
-
         } catch (e) {
             console.log('Error connecting...');
             console.log(e);

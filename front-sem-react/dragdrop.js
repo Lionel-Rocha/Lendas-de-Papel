@@ -70,50 +70,6 @@ function handleDragOver(event) {
     event.preventDefault();
 }
 
-async function handleDrop(event) {
-
-    event.preventDefault();
-    if (is_player_turn){
-        const cardIndex = event.dataTransfer.getData('text/plain');
-        const hand = playerHand;
-        const data = await fetch_card_data();
-
-        const card = hand[cardIndex];
-        const isLegend = await check_if_card_is_legend(card);
-
-        if (isLegend === false && activeCardInstance) {
-            const itemId = cardIndex;
-
-
-
-            let informacao = getItemData(card.uri, data);
-            let atk = informacao.ataque;
-            let hp = informacao.hp;
-            const itemData = [atk, hp]
-            addAttributesToActiveCard(itemData);
-
-            playerHand.splice(parseInt(cardIndex), 1);
-            await updateHandDisplay(data);
-
-        } else {
-
-            const cardData = data.cartas.find(carta => carta.nome === hand[cardIndex].uri);
-
-
-            let result = await check_if_card_is_legend(card);
-            if (result) {
-                playerHand.splice(parseInt(cardIndex), 1);
-                await updateHandDisplay(data);
-                activeCardInstance = new ActiveCard(card, cardData);
-            }
-        }
-    } else {
-        alert("Aguarde sua vez de jogar.");
-    }
-
-}
-
-
 function reduceHP(amount){
     if (activeCardInstance) {
         activeCardInstance.reduceHP(amount); // Reduz o HP da carta ativa em 10 (ou qualquer valor desejado)
@@ -150,13 +106,99 @@ function getItemData(itemUri, data) {
 function addAttributesToActiveCard(itemData) {
     if (!activeCardInstance) return;
 
+    // Validar itemData
+    if (!Array.isArray(itemData) || itemData.length < 2 || typeof itemData[0] !== 'number' || typeof itemData[1] !== 'number') {
+        console.error('Dados inválidos para o item:', itemData);
+        return;
+    }
+
     activeCardInstance.attack += itemData[0];
     activeCardInstance.hp += itemData[1];
 
     let hp = itemData[1];
     let attack = itemData[0];
-    let card = {hp, attack};
-    item_chosen(card);
+    let card = { id: activeCardInstance.card.id, uri: activeCardInstance.card.uri, itens: {itemData}, hp, attack };
 
+    if (activeCardInstance.card.uri === "Papel") {
+        // Lógica específica para a carta "Papel"
+        trocarLenda();
+    }
+
+    item_chosen(card);
     activeCardInstance.updateCardElement();
+}
+
+async function trocarLenda() {
+    const data = await fetch_card_data();
+
+    // Solicitar ao usuário que selecione uma nova lenda da mão
+    let novaLendaIndex;
+    do {
+        novaLendaIndex = prompt("Selecione o índice da nova lenda da sua mão:");
+        novaLendaIndex = parseInt(novaLendaIndex);
+
+        // Validar o índice da nova lenda
+        if (isNaN(novaLendaIndex) || novaLendaIndex < 0 || novaLendaIndex >= playerHand.length) {
+            alert("Índice inválido. Tente novamente.");
+            novaLendaIndex = null;
+        }
+    } while (novaLendaIndex === null);
+
+    const novaLenda = playerHand[novaLendaIndex];
+
+    // Atualizar a lenda ativa
+    const cardData = data.cartas.find(carta => carta.nome === novaLenda.uri);
+    activeCardInstance = new ActiveCard(novaLenda, cardData);
+
+    // Remover a nova lenda da mão e adicionar a lenda anterior de volta à mão
+    playerHand.splice(novaLendaIndex, 1);
+    playerHand.push({ id: activeCardInstance.card.id, uri: activeCardInstance.card.uri });
+
+    // Atualizar a exibição da mão
+    await updateHandDisplay(data);
+}
+
+
+
+async function handleDrop(event) {
+    event.preventDefault();
+    if (is_player_turn) {
+        const cardIndex = event.dataTransfer.getData('text/plain');
+        const hand = playerHand;
+        const data = await fetch_card_data();
+
+        const card = hand[cardIndex];
+        const cardData = data.cartas.find(carta => carta.nome === card.uri);
+        const isLegend = await check_if_card_is_legend(card);
+
+        if (!isLegend && activeCardInstance) {
+            console.log(card.uri);
+            let informacao = getItemData(card.uri, data);
+            let atk = informacao.ataque;
+            let hp = informacao.hp;
+            const itemData = [atk, hp, card.uri];
+
+            addAttributesToActiveCard(itemData); // Passe o URI da carta
+
+            playerHand.splice(parseInt(cardIndex), 1);
+            await updateHandDisplay(data);
+        } else if (!activeCardInstance) {
+            if (cardData) {
+                playerHand.splice(parseInt(cardIndex), 1);
+                await updateHandDisplay(data);
+                activeCardInstance = new ActiveCard(card, cardData);
+            }
+        } else {
+            alert("tentou");
+        }
+        // } else {
+        //     if (cardData) {
+        //         playerHand.splice(parseInt(cardIndex), 1);
+        //         await updateHandDisplay(data);
+        //         activeCardInstance = new ActiveCard(card, cardData);
+        //     }
+        // }
+    } else {
+        alert("Aguarde sua vez de jogar.");
+    }
 }
