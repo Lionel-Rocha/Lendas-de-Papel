@@ -1,7 +1,3 @@
-/*TODO: garantir que o jogador não pode trocar a lenda ativa até que ela morra, a não ser que o
-item "Papel" seja utilizado, adicionar evento de morte de lenda (+1 ponto para o jogador inimigo)
-*/
-
 const socket = io("http://localhost:3000");
 
 
@@ -11,8 +7,7 @@ socket.on('connect', () => {
 
 socket.on('matchFound', (roomName) => {
     console.log('Match found, room:', roomName);
-    sessionStorage.setItem('roomName', roomName);  // Armazenar o nome da sala na sessionStorage
-
+    sessionStorage.setItem('roomName', roomName);
     window.location.href = `match.html?roomId=${roomName}`;
 
 });
@@ -33,6 +28,15 @@ socket.on('enemyCardUpdated', ({card, roomName}) => {
     }
 });
 
+socket.on('legendDied', (roomName)=> {
+    let storedRoomName= sessionStorage.getItem('roomName');
+    if (roomName === storedRoomName) {
+        let activeCardArea = document.getElementById('active-card-area');
+        activeCardArea.innerHTML = '';
+        activeCardInstance = null;
+    }
+})
+
 socket.on('startGame', (roomName) => {
     const storedRoomName = sessionStorage.getItem('roomName');
     if (roomName === storedRoomName) {
@@ -45,32 +49,25 @@ socket.on('hand_changes', async (deckdata) => {
     let hand = deckdata.hand;
     let updated_deck = deckdata.deck;
 
-    // Criar uma instância única do provider e do contrato
     const provider = new ethers.providers.JsonRpcProvider("https://rpc.testnet.lachain.network");
     const contract = new ethers.Contract(BOOSTER_ADDRESS, ABI_BOOSTER.abi, provider);
 
-    // Função para obter URI do cartão
     async function gets_card_uri_without_contract(id) {
         return await contract.tokenURI(id);
     }
 
-    // Obter URIs das cartas na mão e no deck em paralelo
     const handPromises = hand.map(id => gets_card_uri_without_contract(id).then(uri => ({ id, uri })));
     const deckPromises = updated_deck.map(id => gets_card_uri_without_contract(id).then(uri => ({ id, uri })));
 
     hand = await Promise.all(handPromises);
     updated_deck = await Promise.all(deckPromises);
 
-    // Garantir que estamos obtendo os dados das cartas corretamente
     let data = await fetch_card_data();
 
-    // Atualizar a mão no cliente
     const handArea = document.getElementById('hand');
-    handArea.innerHTML = ""; // Limpar a mão atual
+    handArea.innerHTML = "";
 
-    // Adicionar as novas cartas na mão
     for (let card of hand) {
-        // Procurar os dados da carta no objeto 'data'
         const cardDataItem = data.cartas.find(carta => carta.nome === card.uri);
         if (!cardDataItem) {
             console.error(`Card data not found for URI: ${card.uri}`);
@@ -82,16 +79,13 @@ socket.on('hand_changes', async (deckdata) => {
 
         const cardImage = document.createElement('img');
         cardImage.src = `/imagens/lendas/${card.uri}.png`;
-
         const cardDescription = document.createElement('p');
 
-        if (cardDataItem.hp === 0 || cardDataItem.ataque === 0){
+        if (cardDataItem.hp === 0 || cardDataItem.ataque === 0) {
             cardDescription.innerText = cardDataItem.habilidade;
         } else {
             cardDescription.innerText = `HP: ${cardDataItem.hp}\nAtaque: ${cardDataItem.ataque}`;
         }
-
-
 
         cardElement.appendChild(cardImage);
         cardElement.appendChild(cardDescription);
@@ -101,27 +95,24 @@ socket.on('hand_changes', async (deckdata) => {
 });
 
 
+
 socket.on('hand_deck_shuffled', async (deckdata) => {
     console.log("estou lento!");
     let playerHand_ = deckdata.hand;
     let updated_deck = deckdata.updated_deck;
 
-    // Criar uma instância única do provider e do contrato
     const provider = new ethers.providers.JsonRpcProvider("https://rpc.testnet.lachain.network");
     const contract = new ethers.Contract(BOOSTER_ADDRESS, ABI_BOOSTER.abi, provider);
 
-    // Função para obter URI do cartão
     async function gets_card_uri_without_contract(id) {
         return await contract.tokenURI(id);
     }
 
     console.log(updated_deck);
 
-    // Obter URIs das cartas na mão e no deck em paralelo
     const handPromises = playerHand_.map(id => gets_card_uri_without_contract(id).then(uri => ({ id, uri })));
     const deckPromises = updated_deck.map(id => gets_card_uri_without_contract(id).then(uri => ({ id, uri })));
 
-    // Processar as promessas em paralelo
     playerHand_ = await Promise.all(handPromises);
     updated_deck = await Promise.all(deckPromises);
 
@@ -174,7 +165,6 @@ socket.on('drawCard', async (card) => {
     playerHand.push(card_information);
     console.log(`Carta recebida: ${card_information}`);
     updateHandDisplay();
-    // show_deck_cards(playerdeck);
 });
 
 
@@ -238,8 +228,6 @@ function chooseCard(card) {
         const data = { roomName: roomName, card: card };
         socket.emit('chooseCard', data);
         displayActiveCard(card);
-    } else {
-        //lógica para botar o card de volta na mão
     }
 }
 
@@ -284,7 +272,6 @@ function create_enemy_card(card, data){
 
 function item_chosen(updated_card){
     let roomName = sessionStorage.getItem('roomName');
-    console.log(updated_card);
     let hp = updated_card.hp;
     let attack = updated_card.attack;
     let item = updated_card.itens.itemData[2];

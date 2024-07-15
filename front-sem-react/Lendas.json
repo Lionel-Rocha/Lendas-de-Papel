@@ -80,7 +80,7 @@
     {
         "nome": "Dobradura",
         "hp": 0,
-        "habilidade": "Procurar uma Lenda no baralho",
+        "habilidade": "Obter uma Lenda do baralho",
         "ataque": 0,
         "propriedade": "item"
     },
@@ -96,13 +96,6 @@
         "hp": 0,
         "habilidade": "Aumentar ataque da Lenda em 10",
         "ataque": 10,
-        "propriedade": "item"
-    },
-    {
-        "nome": "Papel",
-        "hp": 0,
-        "habilidade": "Trocar a lenda com uma que está na mão",
-        "ataque": 0,
         "propriedade": "item"
     }
 ]

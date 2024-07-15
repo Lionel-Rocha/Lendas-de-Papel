@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.26;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
@@ -29,6 +29,10 @@ contract DeckManager {
         require(decks[msg.sender].cards.length > 0, "Deck does not exist");
         _;
     }
+    modifier addressDeckExists(address deckowner) {
+    require(decks[deckowner].cards.length > 0, "Deck does not exist");
+    _;
+}
 
     function createDeck(uint256[] memory cardIds) external {
         require(cardIds.length == 20, "A deck must contain exactly 20 cards");
@@ -60,6 +64,10 @@ contract DeckManager {
 
     function getDeck() external view deckExists returns (uint256[] memory) {
         return decks[msg.sender].cards;
+    }
+
+    function getUserDeck(address deckowner)external view addressDeckExists(deckowner) returns (uint256[] memory){
+        return decks[deckowner].cards;
     }
 
     function isCardInDeck(uint256 cardId) public view returns (bool) {

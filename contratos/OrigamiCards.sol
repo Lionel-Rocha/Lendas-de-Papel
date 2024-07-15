@@ -32,12 +32,10 @@ contract OrigamiCards is ERC721URIStorage, Ownable {
         cardNames.push("Catavento");
         cardNames.push("Coracao");
         cardNames.push("Dobradura");
-        cardNames.push("Papel");
         cardNames.push("Tesoura");
         cardNames.push("Catavento");
         cardNames.push("Coracao");
         cardNames.push("Dobradura");
-        cardNames.push("Papel");
         cardNames.push("Tesoura");
         
     }

@@ -1,4 +1,4 @@
-let activeCardInstance = null; // Variável global para armazenar a instância ativa da carta
+let activeCardInstance = null;
 let is_player_turn = true;
 class ActiveCard {
     constructor(card, cardData) {
@@ -13,7 +13,7 @@ class ActiveCard {
             chooseCard(this.card);
             const activeCardArea = document.getElementById('active-card-area');
 
-            activeCardArea.innerHTML = ""; // Limpar qualquer carta ativa anterior
+            activeCardArea.innerHTML = "";
 
             const cardContainer = document.createElement('div');
             cardContainer.classList.add('active-card');
@@ -72,7 +72,7 @@ function handleDragOver(event) {
 
 function reduceHP(amount){
     if (activeCardInstance) {
-        activeCardInstance.reduceHP(amount); // Reduz o HP da carta ativa em 10 (ou qualquer valor desejado)
+        activeCardInstance.reduceHP(amount);
 
     }
 }
@@ -106,7 +106,6 @@ function getItemData(itemUri, data) {
 function addAttributesToActiveCard(itemData) {
     if (!activeCardInstance) return;
 
-    // Validar itemData
     if (!Array.isArray(itemData) || itemData.length < 2 || typeof itemData[0] !== 'number' || typeof itemData[1] !== 'number') {
         console.error('Dados inválidos para o item:', itemData);
         return;
@@ -120,7 +119,6 @@ function addAttributesToActiveCard(itemData) {
     let card = { id: activeCardInstance.card.id, uri: activeCardInstance.card.uri, itens: {itemData}, hp, attack };
 
     if (activeCardInstance.card.uri === "Papel") {
-        // Lógica específica para a carta "Papel"
         trocarLenda();
     }
 
@@ -131,13 +129,11 @@ function addAttributesToActiveCard(itemData) {
 async function trocarLenda() {
     const data = await fetch_card_data();
 
-    // Solicitar ao usuário que selecione uma nova lenda da mão
     let novaLendaIndex;
     do {
         novaLendaIndex = prompt("Selecione o índice da nova lenda da sua mão:");
         novaLendaIndex = parseInt(novaLendaIndex);
 
-        // Validar o índice da nova lenda
         if (isNaN(novaLendaIndex) || novaLendaIndex < 0 || novaLendaIndex >= playerHand.length) {
             alert("Índice inválido. Tente novamente.");
             novaLendaIndex = null;
@@ -146,15 +142,12 @@ async function trocarLenda() {
 
     const novaLenda = playerHand[novaLendaIndex];
 
-    // Atualizar a lenda ativa
     const cardData = data.cartas.find(carta => carta.nome === novaLenda.uri);
     activeCardInstance = new ActiveCard(novaLenda, cardData);
 
-    // Remover a nova lenda da mão e adicionar a lenda anterior de volta à mão
     playerHand.splice(novaLendaIndex, 1);
     playerHand.push({ id: activeCardInstance.card.id, uri: activeCardInstance.card.uri });
 
-    // Atualizar a exibição da mão
     await updateHandDisplay(data);
 }
 
@@ -167,8 +160,15 @@ async function handleDrop(event) {
         const hand = playerHand;
         const data = await fetch_card_data();
 
+
         const card = hand[cardIndex];
+
+        console.log(card);
+
         const cardData = data.cartas.find(carta => carta.nome === card.uri);
+
+        console.log(cardData);
+
         const isLegend = await check_if_card_is_legend(card);
 
         if (!isLegend && activeCardInstance) {
@@ -178,7 +178,7 @@ async function handleDrop(event) {
             let hp = informacao.hp;
             const itemData = [atk, hp, card.uri];
 
-            addAttributesToActiveCard(itemData); // Passe o URI da carta
+            addAttributesToActiveCard(itemData);
 
             playerHand.splice(parseInt(cardIndex), 1);
             await updateHandDisplay(data);
@@ -191,13 +191,7 @@ async function handleDrop(event) {
         } else {
             alert("tentou");
         }
-        // } else {
-        //     if (cardData) {
-        //         playerHand.splice(parseInt(cardIndex), 1);
-        //         await updateHandDisplay(data);
-        //         activeCardInstance = new ActiveCard(card, cardData);
-        //     }
-        // }
+
     } else {
         alert("Aguarde sua vez de jogar.");
     }

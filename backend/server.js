@@ -3,11 +3,11 @@ const socketIo = require('socket.io');
 const { join } = require("path");
 const lendas = require(join(__dirname, "Lendas.json"));
 const { ethers } = require('ethers');
-const DECK_ADDRESS = '0x1cdaf3E833BA67623047148C292f9c47eE64BBd1';
+const DECK_ADDRESS = '0xbbF7d1677Cf1781f8d887be420b3980cF4c7d6Ce';
 const JSON_DECK = require('./DeckManager.json');
 const ABI_DECK = JSON_DECK.abi;
 
-const BOOSTER_ADDRESS = "0x736758442539a4714dFa73FF2eC806C2f0CA1660"
+const BOOSTER_ADDRESS = "0x633971307324998C03D9a71A5f106B58E42d95af"
 const JSON_BOOSTER = require("./OrigamiCards.json");
 const ABI_BOOSTER = JSON_BOOSTER.abi;
 
@@ -33,7 +33,7 @@ let playersReady = {};
 let playerTurn = {};
 let activeCards = {};
 let playerDecks = {};
-
+let playerPoints = {};
 io.on('connection', (socket) => {
 
     socket.on('findMatch', () => {
@@ -51,6 +51,8 @@ io.on('connection', (socket) => {
             io.to(roomName).emit('matchFound', roomName);
             console.log(`Sala criada: ${roomName}`);
             console.log('Jogadores na sala:', Array.from(io.sockets.adapter.rooms.get(roomName) || []));
+
+
         }
     });
 
@@ -61,7 +63,7 @@ io.on('connection', (socket) => {
 
         try {
             const deckBigInt = await deck_contract.getUserDeck(player.address);
-            let deck = deckBigInt.map(card => Number(card)); // Convertendo BigInt para Number
+            let deck = deckBigInt.map(card => Number(card));
             deck = shuffle_deck(deck);
 
             [hand, updated_deck] = give_hand(deck);
@@ -72,7 +74,7 @@ io.on('connection', (socket) => {
             playerDecks[socket.id].deck = updated_deck;
             playerDecks[socket.id].hand = hand;
 
-            checkSpecialCards(hand, socket.id); // Verifica as cartas especiais
+            checkSpecialCards(hand, socket.id);
 
             io.to(socket.id).emit("hand_deck_shuffled", { hand, updated_deck });
         } catch (e) {
@@ -106,10 +108,22 @@ io.on('connection', (socket) => {
 
         removeCardFromHand(socket.id, card.id);
 
+        if (!playerPoints[roomName]) {
+            playerPoints[roomName] = {};
+        }
+
         if (Object.keys(playersReady[roomName]).length === 2) {
+            console.log(playersReady[roomName]);
+
+            for (let playerId in playersReady[roomName]) {
+                if (playersReady[roomName].hasOwnProperty(playerId)) {
+                    playerPoints[roomName][playerId] = 0;
+                }
+            }
             startTurn(roomName, playersReady[roomName]);
         }
     });
+
 
     socket.on('item_chosen', async (data) => {
         const roomName = data.roomName;
@@ -135,18 +149,16 @@ io.on('connection', (socket) => {
         } else if (item.uri === "Dobradura") {
             const newCard = await dobradura(socket.id, roomName);
             if (newCard) {
-               console.log(newCard);
                let hand = playerDecks[socket.id].hand;
                let deck = playerDecks[socket.id];
-
                io.to(socket.id).emit("hand_changes", {hand, deck: deck.deck });
             }
-        } else if (item.id === "Papel") {
-            await trocarLenda(socket.id, roomName);
         } else {
+
             activeCard.itens.push(item);
             activeCard.hp += item.hp;
             activeCard.ataque += item.attack;
+
         }
 
         socket.broadcast.emit('enemyCardUpdated', { card: activeCard, roomName });
@@ -173,13 +185,15 @@ io.on('connection', (socket) => {
         const activeCard = activeCards[roomName][socket.id];
         let attackPower = activeCard.ataque;
 
-        for (const item of activeCard.itens) {
-            attackPower += item.attack || 0;
-        }
-
         if (opponentId) {
             let opponentCard = activeCards[roomName][opponentId];
             opponentCard.hp -= attackPower;
+
+            console.log(opponentCard.hp);
+
+            if (opponentCard.hp <= 0){
+                handleLegendDeath(socket.id, roomName)
+            }
 
             io.to(opponentId).emit('reduceHP', { roomName, amount: attackPower });
             io.to(socket.id).emit('reduceEnemyHP', { roomName, card: opponentCard });
@@ -192,33 +206,26 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`Usuário desconectado: ${socket.id}`);
+
         waitingPlayers = waitingPlayers.filter(player => player.id !== socket.id);
+
+        Object.keys(playersReady).forEach(roomName => {
+            if (playersReady[roomName][socket.id]) {
+                delete playersReady[roomName][socket.id];
+            }
+        });
+
+        Object.keys(playersReady).forEach(roomName => {
+            if (Object.keys(playersReady[roomName]).length === 0) {
+                delete playersReady[roomName];
+                delete playerTurn[roomName];
+                delete activeCards[roomName];
+                delete playerDecks[roomName];
+                delete playerPoints[roomName];
+            }
+        });
     });
 });
-
-async function trocarLenda(playerId, roomName) {
-    const playerHand = playerDecks[playerId].hand;
-    const activeCard = activeCards[roomName][playerId];
-
-    const novaLendaIndex = await new Promise((resolve) => {
-        socket.emit('selectNewLegend', { playerId, roomName }, resolve);
-    });
-
-    if (novaLendaIndex !== null && novaLendaIndex >= 0 && novaLendaIndex < playerHand.length) {
-        const novaLenda = playerHand[novaLendaIndex];
-
-        activeCards[roomName][playerId] = { ...novaLenda, itens: [] };
-
-        playerHand.splice(novaLendaIndex, 1);
-        playerHand.push(activeCard);
-
-        playerDecks[playerId].hand = playerHand;
-
-        socket.emit('handUpdated', { hand: playerHand });
-    } else {
-        console.error('Índice da nova lenda inválido:', novaLendaIndex);
-    }
-}
 
 function startTurn(roomName, players) {
     if (Object.keys(players).length === 0) {
@@ -243,7 +250,7 @@ function startTurn(roomName, players) {
 
 async function dobradura(playerId, roomName) {
     const deck = playerDecks[playerId].deck;
-    const items = ["Catavento", 'Coracao', 'Dobradura', 'Papel', 'Tesoura'];
+    const items = ["Catavento", 'Coracao', 'Dobradura', 'Tesoura'];
 
     let card;
     for (let i = 0; i < deck.length; i++) {
@@ -256,7 +263,22 @@ async function dobradura(playerId, roomName) {
             return card;
         }
     }
-    return null; // Caso todas as cartas no deck sejam itens
+    return null;
+}
+
+async function check_if_has_legend(playerId) {
+    const deck = playerDecks[playerId].hand;
+    const items = ["Catavento", 'Coracao', 'Dobradura', 'Tesoura'];
+
+    let card;
+    for (let i = 0; i < deck.length; i++) {
+        const uri = await booster_contract.tokenURI(deck[i]);
+        if (!items.includes(uri)) {
+            card = {id: deck[i], uri: uri}
+            return card;
+        }
+    }
+    return null;
 }
 
 async function reshuffleHand(playerId, roomName) {
@@ -325,7 +347,7 @@ function shuffle_deck(arr) {
 }
 
 function checkSpecialCards(hand, playerId) {
-    const specialCards = ['Catavento', 'Dobradura', 'Papel'];
+    const specialCards = ['Catavento', 'Dobradura'];
     hand.forEach(card => {
         if (specialCards.includes(card.nome)) {
 
@@ -351,6 +373,45 @@ function handleCataventoCard(playerId) {
 function removeCardFromHand(playerId, cardId) {
     if (playerDecks[playerId] && playerDecks[playerId].hand) {
         playerDecks[playerId].hand = playerDecks[playerId].hand.filter(card => card.id !== cardId);
+    }
+}
+
+function handleLegendDeath(playerId, roomName) {
+    const opponentId = Object.keys(playersReady[roomName]).find(id => id !== playerId);
+
+    if (playerPoints[roomName] && playerPoints[roomName][playerId] !== undefined) {
+        playerPoints[roomName][playerId]++;
+    } else {
+        console.error(`Player points not initialized for playerId: ${playerId}, roomName: ${roomName}`);
+    }
+
+    console.log("morreu");
+    io.to(opponentId).emit('legendDied', roomName);
+    io.to(playerId).emit('enemyLegendDied', roomName);
+
+    if (playerDecks[opponentId] && playerDecks[opponentId].hand.length > 0) {
+        io.to(opponentId).emit('selectNewLegend', playerDecks[opponentId].hand);
+    } else {
+        checkGameOver(roomName);
+    }
+}
+
+async function checkGameOver(roomName) {
+    const points = playerPoints[roomName];
+
+    let has_legend_p1 = await check_if_has_legend(playerDecks[Object.keys(points)[0]]);
+    let has_legend_p2 = await check_if_has_legend(playerDecks[Object.keys(points)[1]]);
+
+    console.log(has_legend_p1);
+    console.log(has_legend_p2);
+
+    const player1NoCards = playerDecks[Object.keys(points)[0]].deck.length === 0 && has_legend_p1;
+    const player2NoCards = playerDecks[Object.keys(points)[1]].deck.length === 0 && has_legend_p2;
+
+    if (player1NoCards || player2NoCards) {
+        const winner = Object.keys(points).reduce((a, b) => points[a] > points[b] ? a : b);
+        console.log('Jogo terminado. Vencedor:', winner);
+        io.to(roomName).emit('gameOver', {winner, points});
     }
 }
 
